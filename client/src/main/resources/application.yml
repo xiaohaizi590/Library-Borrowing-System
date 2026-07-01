@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: nacon7-client
+
+server:
+  port: 8082
+
+logging:
+  level:
+    net.togogo: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
