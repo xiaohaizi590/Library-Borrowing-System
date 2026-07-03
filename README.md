@@ -822,29 +822,7 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 | **@NotBlank 误用于 Long/Integer** | [BorrowRequest.java](file:///C:/Users/p4/Desktop/nacon7/common/src/main/java/net/togogo/dto/BorrowRequest.java) | `bookId`（Long）和 `borrowDays`（Integer）误用 `@NotBlank`，已改为 `@NotNull` |
 | **借阅接口存在越权风险** | [BookController.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/controller/BookController.java) + [BookServiceClient.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/BookServiceClient.java) | 移除客户端传入 `userId`，改为从 `SecurityContextHolder` 解析当前登录用户 |
 
-### 8.2 代码问题
 
-| 问题 | 位置 | 描述 |
-|------|------|------|
-| **未使用List\<BookDTO\>的collect** | [BookServiceImpl.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/service/impl/BookServiceImpl.java) | 部分分页方法返回 `Page` 时保留了 `Collectors.toList()` 的 import，但实际未使用 |
-| **无邮箱字段注册** | [RegisterRequest.java](file:///C:/Users/p4/Desktop/nacon7/common/src/main/java/net/togogo/dto/RegisterRequest.java) | 注册时无 `email` 字段，注册页面中邮箱输入框也被移除 |
-| **登录方式局限** | [UserServiceImpl.java:56](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/service/impl/UserServiceImpl.java#L56) | `login()` 方法仅支持 username 登录 |
-| **密钥硬编码** | [server/application.yml:36](file:///C:/Users/p4/Desktop/nacon7/server/src/main/resources/application.yml#L36) | `jwt.secret` 硬编码在配置文件中 |
-
-### 8.3 优化建议
-
-1. **增加手机号登录**：在 `UserServiceImpl.login()` 中增加手机号匹配逻辑
-2. **统一异常处理**：添加 `@ControllerAdvice` 全局异常处理器
-3. **接口文档**：集成 SpringDoc OpenAPI 自动生成接口文档
-4. **密码强度校验**：增加密码复杂度规则（如包含大小写字母、数字、特殊字符）
-5. **邮箱验证**：注册时发送验证邮件
-6. **密码重置**：增加忘记密码功能
-7. **JWT 刷新机制**：实现 Access Token 和 Refresh Token 双令牌机制
-8. **日志审计**：记录关键操作日志
-9. **图书封面**：增加图书封面图片上传功能
-10. **借阅提醒**：增加到期提醒功能
-
----
 
 ## 9. 开发规范
 
