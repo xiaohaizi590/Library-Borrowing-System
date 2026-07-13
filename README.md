@@ -297,57 +297,9 @@ POST /api/books/return/{recordId}
 
 ---
 
-## 5. 安全机制
+## 5. 数据模型
 
-### 5.1 Spring Security 配置
-
-```java
-// 核心配置要点
-- CSRF: 禁用（前后端分离场景）
-- Session: 无状态（STATELESS）
-- 白名单: /api/users/register, /api/users/login
-- 过滤器链: JwtAuthenticationFilter → UsernamePasswordAuthenticationFilter
-```
-
-### 5.2 JWT 令牌
-
-**Token 结构：**
-```
-Header: {"alg": "HS256", "typ": "JWT"}
-Payload: {
-  "sub": "username",
-  "userId": 1,
-  "username": "zhangsan",
-  "iat": 1704067200,
-  "exp": 1704153600
-}
-Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
-```
-
-**配置参数：**
-- `jwt.secret`: 签名密钥（默认: mySecretKeyForJwtTokenMustBeLongEnough123456）
-- `jwt.expire`: 过期时间（默认: 86400000ms = 24小时）
-
-### 5.3 密码加密
-
-使用 **BCryptPasswordEncoder** 进行密码哈希：
-- 自动加盐
-- 单向加密，不可解密
-- 每次加密结果不同，但验证时可匹配
-
-### 5.4 方法级权限控制
-
-| 注解 | 作用 | 示例 |
-|------|------|------|
-| `@PreAuthorize("hasRole('ADMIN')")` | 仅管理员可访问 | 删除用户、创建图书 |
-| `@PreAuthorize("isAuthenticated()")` | 已登录用户可访问 | 获取个人信息、借阅图书 |
-| `@PreAuthorize("@userServiceImpl.isOwnUser(#id)")` | 仅本人可访问 | 获取个人详情 |
-
----
-
-## 6. 数据模型
-
-### 6.1 User 实体
+### 5.1 User 实体
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -359,7 +311,7 @@ Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), 
 | role | Role | @Enumerated(EnumType.STRING) | 角色（USER/ADMIN） |
 | createTime | LocalDateTime | @PrePersist 自动填充 | 创建时间 |
 
-### 6.2 Book 实体
+### 5.2 Book 实体
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -375,7 +327,7 @@ Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), 
 | available | Integer | @Column(nullable=false) | 可借数量 |
 | createTime | LocalDateTime | @PrePersist 自动填充 | 创建时间 |
 
-### 6.3 BorrowRecord 实体
+### 5.3 BorrowRecord 实体
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -390,9 +342,9 @@ Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), 
 
 ---
 
-## 7. 部署与运行
+## 6. 部署与运行
 
-### 7.1 前置依赖
+### 6.1 前置依赖
 
 | 依赖 | 版本 | 端口 | 说明 |
 |------|------|------|------|
@@ -400,7 +352,7 @@ Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), 
 | MySQL | 8.x | 3306 | 数据库 |
 | Node.js | >= 18.x | - | 前端运行环境 |
 
-### 7.2 数据库配置
+### 6.2 数据库配置
 
 创建数据库：
 ```sql
@@ -413,7 +365,7 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 - 密码：`123456`
 - 连接URL：`jdbc:mysql://localhost:3306/nacon7_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true`
 
-### 7.3 启动顺序
+### 6.3 启动顺序
 
 1. **启动 Nacos Server**（仅服务端需要）
    ```bash
@@ -442,7 +394,7 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
    服务地址：`http://localhost:5173`
 
-### 7.4 初始化账号
+### 6.4 初始化账号
 
 项目启动时自动创建测试账号：
 
@@ -451,7 +403,7 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 | admin | admin123 | ADMIN | 13800138000 |
 | user | user123 | USER | 13800138001 |
 
-### 7.5 前端页面说明
+### 6.5 前端页面说明
 
 | 页面 | 路径 | 功能 | 说明 |
 |------|------|------|------|
@@ -466,7 +418,7 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ---
 
-## 8. 常用命令
+## 7. 常用命令
 
 ```bash
 # 后端编译
@@ -490,22 +442,22 @@ npm run preview
 
 ---
 
-## 9. 开发规范
+## 8. 开发规范
 
-### 9.1 模块依赖规则
+### 8.1 模块依赖规则
 
 - **controller** 类必须放在 `server` 模块，不能放在 `common` 模块
 - **common** 模块只能包含 entities、DTOs 和 utility classes
 - **server** 模块必须使用 `${project.version}` 依赖 `common` 模块
 
-### 9.2 前端开发规范
+### 8.2 前端开发规范
 
 - 组件文件命名使用 PascalCase（如 `BookListView.vue`）
 - 工具函数放在 `src/utils/` 目录
 - API 服务放在 `src/services/` 目录
 - 路由配置在 `src/router/index.js`
 
-### 9.3 新增功能开发规范
+### 8.3 新增功能开发规范
 
 **后端：**
 1. Entity（实体类）→ common 模块
