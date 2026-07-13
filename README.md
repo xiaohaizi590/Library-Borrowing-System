@@ -1,40 +1,47 @@
-# nacon7 图书管理系统技术指南
+# nacon7 图书管理系统
 
 ## 1. 项目概述
 
 ### 1.1 项目定位
 
-本项目是一个基于 **Spring Boot** 构建的图书管理系统，提供完整的用户注册、登录、认证、授权、图书管理和借阅管理功能。系统采用前后端分离架构，后端提供 REST API，前端使用 JavaFX 构建桌面客户端。
-//这个项目的前端将转为Vue3，以实现我对Vue的理解，前端的JavaFx，将转到单机应用那边，那边将要改为仓库管理系统。
-
+本项目是一个基于 **Spring Boot** + **Vue 3** 构建的图书管理系统，提供完整的用户注册、登录、认证、授权、图书管理和借阅管理功能。系统采用前后端分离架构，后端提供 REST API，前端使用 Vue 3 + Vite + TailwindCSS 构建现代化 Web 界面。
 
 ### 1.2 技术栈
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Java | 17 | 编程语言 |
-| Spring Boot | 3.2.0 | 应用框架 |
+| Java | 17 | 后端编程语言 |
+| Spring Boot | 3.2.0 | 后端应用框架 |
 | Spring Cloud | 2023.0.1 | 微服务框架 |
-| Spring Cloud Alibaba | 2023.0.1.0 | Nacos 集成（仅服务端） |
+| Spring Cloud Alibaba | 2023.0.1.0 | Nacos 集成 |
 | Spring Security | 6.x | 安全框架 |
 | Spring Data JPA | 3.2.x | 数据访问 |
 | JWT (JJWT) | 0.12.3 | 令牌认证 |
 | MySQL | 8.x | 数据库 |
-| JavaFX | 21.0.2 | 客户端 GUI |
-| Feign | 4.x | HTTP 客户端调用 |
+| Vue | 3.4.21 | 前端框架 |
+| Vue Router | 4.2.5 | 前端路由 |
+| Vite | 5.2.8 | 前端构建工具 |
+| TailwindCSS | 3.4.1 | CSS 框架 |
+| Axios | 1.6.5 | HTTP 客户端 |
+| Lucide | 0.314.0 | 图标库 |
 | Lombok | 1.18.30 | POJO 简化 |
 
 ### 1.3 项目结构
 
 ```
-nacon7/                                    # 父项目（Maven聚合）
-├── pom.xml                                 # 父POM：版本管理
-├── common/                                 # 公共模块
+nacon7/                                    # 根目录
+├── pom.xml                                 # 后端 Maven 父 POM（版本管理）
+├── index.html                              # 前端入口 HTML
+├── package.json                            # 前端依赖配置
+├── vite.config.js                          # Vite 配置
+├── tailwind.config.js                      # TailwindCSS 配置
+├── postcss.config.js                       # PostCSS 配置
+├── common/                                 # 后端公共模块
 │   └── src/main/java/net/togogo/
 │       ├── common/                         # 通用类（Result、ResultCode、BusinessException）
 │       ├── dto/                            # 数据传输对象
 │       └── entity/                         # 数据库实体（User、Book、BorrowRecord）
-├── server/                                 # 服务端模块
+├── server/                                 # 后端服务模块
 │   └── src/main/java/net/togogo/
 │       ├── config/                         # 配置类（Security、Cors、DataInitializer）
 │       ├── controller/                     # REST API控制器（UserController、BookController）
@@ -43,29 +50,25 @@ nacon7/                                    # 父项目（Maven聚合）
 │       ├── server/                         # 启动类
 │       ├── service/                        # 业务逻辑层（UserService、BookService）
 │       └── util/                           # 工具类
-├── client/                                 # 客户端模块
-│   └── src/main/java/net/togogo/client/
-│       ├── ClientApplication.java          # Spring Boot启动类
-│       ├── FxApplication.java              # JavaFX入口类（~70行，仅初始化+导航）
-│       ├── AppContext.java                 # 全局共享上下文（Bean容器）
-│       ├── TokenStore.java                 # Token存储（实例级）
-│       ├── UserFeignConfig.java            # Feign配置（实例级拦截器）
-│       ├── UserServiceClient.java          # 用户Feign客户端接口
-│       ├── BookServiceClient.java          # 图书Feign客户端接口
-│       └── view/
-│           ├── SceneCache.java             # Scene缓存（登录/主页）
-│           ├── LoginView.java              # 登录页面
-│           ├── RegisterView.java           # 注册页面
-│           ├── MainView.java               # 主页面布局（TabPane+顶栏）
-│           └── tab/
-│               ├── BookListTab.java        # 图书浏览Tab
-│               ├── MyBorrowTab.java        # 我的借阅Tab
-│               ├── ProfileTab.java         # 个人信息Tab
-│               ├── BookManageTab.java      # 图书管理Tab（管理员）
-│               ├── UserManageTab.java      # 用户管理Tab（管理员）
-│               └── BorrowManageTab.java    # 借阅管理Tab（管理员）
+├── src/                                    # 前端源码
+│   ├── views/                              # 页面组件
+│   │   ├── LoginView.vue                   # 登录页面
+│   │   ├── RegisterView.vue                # 注册页面
+│   │   ├── MainLayout.vue                  # 主布局（侧边栏）
+│   │   ├── BookListView.vue                # 图书浏览页面
+│   │   ├── MyBorrowView.vue                # 我的借阅页面
+│   │   ├── ProfileView.vue                 # 个人信息页面
+│   │   ├── BookManageView.vue              # 图书管理页面（管理员）
+│   │   ├── UserManageView.vue              # 用户管理页面（管理员）
+│   │   └── BorrowManageView.vue            # 借阅管理页面（管理员）
+│   ├── router/                             # 路由配置
+│   ├── services/                           # API 服务层
+│   ├── utils/                              # 工具函数（API拦截器、认证）
+│   ├── App.vue                             # 根组件
+│   ├── main.js                             # 入口文件
+│   └── style.css                           # 全局样式
 └── docs/                                   # 文档目录
-    └── 技术指南.md                          # 本文档
+    └── 技术指南.md                          # 详细技术文档
 ```
 
 ---
@@ -92,25 +95,19 @@ nacon7/                                    # 父项目（Maven聚合）
               └───────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│                    nacon7-client                             │
-│              (端口: 8082 - Feign直连)                        │
+│                    Vue 3 前端 (Vite)                         │
+│              (端口: 5173 - 代理 /api → 8081)                │
 │                                                              │
-│   FxApplication (入口)                                       │
+│   LoginView / RegisterView (登录/注册)                      │
 │        ↓                                                     │
-│   AppContext (全局上下文: UserServiceClient,                  │
-│        ↓      BookServiceClient, TokenStore,                  │
-│        ↓      ExecutorService, Stage)                        │
+│   MainLayout (侧边栏导航 + 主内容区)                          │
 │        ↓                                                     │
-│   SceneCache (Scene缓存)                                     │
-│    ├── LoginView (登录页)                                    │
-│    ├── RegisterView (注册页)                                 │
-│    └── MainView (TabPane导航)                                │
-│         ├── BookListTab    ── 图书浏览+搜索+借阅             │
-│         ├── MyBorrowTab    ── 我的借阅+归还+续借             │
-│         ├── ProfileTab     ── 个人信息                        │
-│         ├── BookManageTab  ── 图书管理CRUD (管理员)           │
-│         ├── UserManageTab  ── 用户管理 (管理员)               │
-│         └── BorrowManageTab ── 借阅管理全部/逾期 (管理员)      │
+│   ├── BookListView    ── 图书浏览+搜索+借阅                  │
+│   ├── MyBorrowView    ── 我的借阅+归还+续借                  │
+│   ├── ProfileView     ── 个人信息                           │
+│   ├── BookManageView  ── 图书管理CRUD (管理员)               │
+│   ├── UserManageView  ── 用户管理 (管理员)                   │
+│   └── BorrowManageView ── 借阅管理全部/逾期 (管理员)          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -120,7 +117,7 @@ nacon7/                                    # 父项目（Maven聚合）
 |------|------|------|
 | **common** | 公共实体、DTO、通用返回类 | Spring Boot Starter、JPA API、Lombok |
 | **server** | 用户服务端，提供 REST API（用户管理、图书管理、借阅管理） | common、Spring Web、Security、JPA、JWT、Nacos |
-| **client** | JavaFX 客户端，通过 Feign 直连调用服务 | common、Feign、JavaFX |
+| **src** | Vue 3 前端，提供用户交互界面 | Vue 3、Vue Router、Vite、TailwindCSS、Axios |
 
 ---
 
@@ -163,13 +160,14 @@ POST /api/users/login
               └─ 继续过滤器链 → Controller
 ```
 
-### 3.4 Feign 请求拦截流程
+### 3.4 前端认证流程
 
 ```
-客户端调用 API → FeignAuthInterceptor (实例级)
-                    ├─ 从 TokenStore 获取当前 Token
-                    ├─ 设置 Authorization: Bearer {token} 请求头
-                    └─ 发送请求到服务端
+登录成功 → 存储 Token 和用户信息到 localStorage
+              ↓
+后续请求 → Axios 请求拦截器自动注入 Authorization 头
+              ↓
+Token 过期 → Axios 响应拦截器清除本地存储，跳转登录页
 ```
 
 ### 3.5 权限控制流程
@@ -179,6 +177,10 @@ Controller 方法标注 @PreAuthorize
     ├─ hasRole('ADMIN')         → 仅管理员可访问
     ├─ isAuthenticated()        → 登录用户可访问
     └─ @userServiceImpl.isOwnUser(#id)  → 仅本人可访问
+
+前端路由守卫
+    ├─ requiresAuth: true       → 未登录跳转登录页
+    ├─ requiresAdmin: true      → 非管理员跳转首页
 ```
 
 ### 3.6 图书借阅流程
@@ -222,82 +224,6 @@ POST /api/books/return/{recordId}
 | `/api/users/login` | POST | 无 | 用户登录 |
 | `/api/users/profile` | GET | 已认证 | 获取当前用户信息 |
 
-#### 注册接口
-
-**请求体：**
-```json
-{
-  "username": "string (3-50字符，必填)",
-  "password": "string (6-20字符，必填)",
-  "phone": "string (11位，必填)"
-}
-```
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "注册成功",
-  "data": {
-    "id": 1,
-    "username": "zhangsan",
-    "email": null,
-    "createTime": "2024-01-01T10:00:00",
-    "phoneNumber": "13800138000",
-    "role": "USER"
-  }
-}
-```
-
-#### 登录接口
-
-**请求体：**
-```json
-{
-  "account": "string (3-20字符，必填，仅支持用户名)",
-  "password": "string (6-20字符，必填)"
-}
-```
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "登录成功",
-  "data": {
-    "id": 1,
-    "username": "zhangsan",
-    "email": "zhangsan@example.com",
-    "phone": "13800138000",
-    "token": "eyJhbGciOiJIUzI1NiJ9...",
-    "role": "USER"
-  }
-}
-```
-
-#### 获取用户信息接口
-
-**请求头：**
-```
-Authorization: Bearer {token}
-```
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "id": 1,
-    "username": "zhangsan",
-    "email": "zhangsan@example.com",
-    "createTime": "2024-01-01T10:00:00",
-    "phoneNumber": "13800138000",
-    "role": "USER"
-  }
-}
-```
-
 ### 4.2 用户管理接口
 
 | 接口路径 | HTTP方法 | 权限要求 | 说明 |
@@ -308,64 +234,6 @@ Authorization: Bearer {token}
 | `/api/users/getUserByPhone/{phone}` | GET | ADMIN | 根据手机号获取用户 |
 | `/api/users/updateUser/{id}` | PUT | ADMIN 或本人 | 更新用户信息 |
 | `/api/users/deleteUser/{id}` | DELETE | ADMIN | 删除用户 |
-
-#### 获取所有用户接口（分页）
-
-**请求参数：**
-- `page`: 页码，默认0
-- `size`: 每页大小，默认10
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "content": [
-      {
-        "id": 1,
-        "username": "zhangsan",
-        "email": "zhangsan@example.com",
-        "createTime": "2024-01-01T10:00:00",
-        "phoneNumber": "13800138000",
-        "role": "USER"
-      }
-    ],
-    "totalElements": 100,
-    "totalPages": 10,
-    "size": 10,
-    "number": 0
-  }
-}
-```
-
-#### 更新用户接口
-
-**请求体：**
-```json
-{
-  "username": "string (3-20字符，可选)",
-  "email": "string (邮箱格式，可选)",
-  "phone": "string (11位手机号，可选)",
-  "role": "string (ADMIN/USER，仅管理员可修改)"
-}
-```
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "更新成功",
-  "data": {
-    "id": 1,
-    "username": "zhangsan",
-    "email": "newemail@example.com",
-    "createTime": "2024-01-01T10:00:00",
-    "phoneNumber": "13900139000",
-    "role": "USER"
-  }
-}
-```
 
 ### 4.3 图书管理接口
 
@@ -380,87 +248,6 @@ Authorization: Bearer {token}
 | `/api/books/update/{id}` | PUT | ADMIN | 更新图书信息 |
 | `/api/books/delete/{id}` | DELETE | ADMIN | 删除图书 |
 
-#### 创建图书接口
-
-**请求体：**
-```json
-{
-  "title": "string (必填)",
-  "author": "string (必填)",
-  "isbn": "string (可选)",
-  "publisher": "string (可选)",
-  "publishDate": "string (ISO日期格式，可选)",
-  "category": "string (可选)",
-  "description": "string (可选)",
-  "stock": "integer (库存数量，必填)"
-}
-```
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "创建成功",
-  "data": {
-    "id": 1,
-    "title": "Java编程思想",
-    "author": "Bruce Eckel",
-    "isbn": "9787111213826",
-    "publisher": "机械工业出版社",
-    "category": "计算机",
-    "description": "Java学习经典",
-    "stock": 10,
-    "available": 10,
-    "publishDate": "2007-06-01T00:00:00"
-  }
-}
-```
-
-#### 获取所有图书接口（分页）
-
-**请求参数：**
-- `page`: 页码，默认0
-- `size`: 每页大小，默认10
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "content": [
-      {
-        "id": 1,
-        "title": "Java编程思想",
-        "author": "Bruce Eckel",
-        "isbn": "9787111213826",
-        "publisher": "机械工业出版社",
-        "category": "计算机",
-        "description": "Java学习经典",
-        "stock": 10,
-        "available": 8,
-        "publishDate": "2007-06-01T00:00:00"
-      }
-    ],
-    "totalElements": 50,
-    "totalPages": 5,
-    "size": 10,
-    "number": 0
-  }
-}
-```
-
-#### 搜索图书接口
-
-**按标题搜索：**
-- GET `/api/books/searchByTitle?title=Java&page=0&size=10`
-
-**按作者搜索：**
-- GET `/api/books/searchByAuthor?author=Bruce&page=0&size=10`
-
-**按分类搜索：**
-- GET `/api/books/searchByCategory?category=计算机&page=0&size=10`
-
 ### 4.4 借阅管理接口
 
 | 接口路径 | HTTP方法 | 权限要求 | 说明 |
@@ -472,67 +259,6 @@ Authorization: Bearer {token}
 | `/api/books/borrowRecords/book/{bookId}` | GET | ADMIN | 获取图书借阅记录 |
 | `/api/books/borrowRecords/all` | GET | ADMIN | 获取全部借阅记录（分页） |
 | `/api/books/overdue` | GET | ADMIN | 获取逾期记录（分页） |
-
-#### 借阅图书接口
-
-> ⚠ **安全说明**：该接口不需要客户端传入 `userId`，用户身份从 JWT Token 中自动解析。修改前的设计要求客户端传递 `userId` 存在越权风险，现已重构。
-
-**请求体：**
-```json
-{
-  "bookId": "long (图书ID，必填)",
-  "borrowDays": "integer (借阅天数，必填)"
-}
-```
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "借阅成功",
-  "data": {
-    "id": 1,
-    "bookId": 1,
-    "bookTitle": "Java编程思想",
-    "bookAuthor": "Bruce Eckel",
-    "userId": 1,
-    "userName": "zhangsan",
-    "borrowTime": "2024-01-01T10:00:00",
-    "dueTime": "2024-01-31T10:00:00",
-    "returnTime": null,
-    "renewCount": 0,
-    "status": "BORROWED",
-    "overdueDays": null
-  }
-}
-```
-
-#### 续借图书接口
-
-**路径参数：**
-- `recordId`: 借阅记录ID
-
-**成功响应 (200)：**
-```json
-{
-  "code": 200,
-  "message": "续借成功",
-  "data": {
-    "id": 1,
-    "bookId": 1,
-    "bookTitle": "Java编程思想",
-    "bookAuthor": "Bruce Eckel",
-    "userId": 1,
-    "userName": "zhangsan",
-    "borrowTime": "2024-01-01T10:00:00",
-    "dueTime": "2024-03-02T10:00:00",
-    "returnTime": null,
-    "renewCount": 1,
-    "status": "BORROWED",
-    "overdueDays": null
-  }
-}
-```
 
 ### 4.5 通用响应格式
 
@@ -560,7 +286,6 @@ Authorization: Bearer {token}
 | 1004 | TOKEN_INVALID | Token 无效 |
 | 1005 | TOKEN_EXPIRED | Token 已过期 |
 | 1006 | PHONE_EXIST | 手机号已存在 |
-| 1007 | EMAIL_EXIST | 邮箱已存在 |
 | 2001 | BOOK_ISBN_EXIST | ISBN已存在 |
 | 2002 | BOOK_NOT_AVAILABLE | 图书库存不足 |
 | 2003 | BOOK_ALREADY_BORROWED | 图书已被借阅 |
@@ -616,23 +341,6 @@ Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), 
 | `@PreAuthorize("isAuthenticated()")` | 已登录用户可访问 | 获取个人信息、借阅图书 |
 | `@PreAuthorize("@userServiceImpl.isOwnUser(#id)")` | 仅本人可访问 | 获取个人详情 |
 
-> **借阅接口权限**：`borrowBook` 方法标注 `@PreAuthorize("isAuthenticated()")`，任何登录用户均可借阅。用户身份（userId）不再由客户端传入，而是通过 `SecurityContextHolder` 从 JWT Token 解析，确保数据安全。
-
-### 5.5 客户端 Token 管理
-
-客户端使用实例级拦截器方案管理 Token：
-
-```
-TokenStore (Bean)
-    ├─ setToken(String token)    → 设置登录后的 Token
-    ├─ getToken()                → 获取当前 Token（供拦截器使用）
-    ├─ clearToken()              → 清除 Token（退出登录时）
-    └─ hasToken()                → 判断是否有 Token
-
-UserFeignConfig (实例级配置)
-    └─ feignAuthInterceptor()    → 创建 RequestInterceptor，自动注入 Authorization 头
-```
-
 ---
 
 ## 6. 数据模型
@@ -678,61 +386,6 @@ UserFeignConfig (实例级配置)
 | renewCount | Integer | @Column(nullable=false) | 续借次数 |
 | status | Borrowstatus | @Enumerated(EnumType.STRING) | 状态（BORROWED/RETURNED/OVERDUE） |
 
-### 6.4 DTO 映射关系
-
-| DTO | 用途 | 映射实体 |
-|-----|------|----------|
-| LoginRequest | 登录请求 | User.account → username |
-| RegisterRequest | 注册请求 | User.username, password, phone |
-| LoginResponse | 登录响应 | User.id, username, email, phone, token, role |
-| UserDTO | 用户信息响应 | User.id, username, email, phoneNumber, createTime, role |
-| UpdateUserRequest | 更新请求 | User.username, email, phone, role |
-| BookDTO | 图书信息响应 | Book.id, title, author, isbn, publisher, publishDate, category, description, stock, available |
-| CreateBookRequest | 创建图书请求 | Book.title, author, isbn, publisher, publishDate, category, description, stock |
-| BorrowRecordDTO | 借阅记录响应 | BorrowRecord + Book.title, Book.author, User.username |
-| BorrowRequest | 借阅请求（不含userId，从Token解析） | Book.bookId, borrowDays（使用 @NotNull 校验） |
-
-### 6.5 数据库表结构
-
-```sql
-CREATE TABLE t_user (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(100) NOT NULL,
-    email VARCHAR(100),
-    phone VARCHAR(11) NOT NULL UNIQUE,
-    role VARCHAR(20) NOT NULL DEFAULT 'USER',
-    create_time DATETIME
-);
-
-CREATE TABLE t_book (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(200) NOT NULL,
-    author VARCHAR(100) NOT NULL,
-    isbn VARCHAR(20) UNIQUE,
-    publisher VARCHAR(100),
-    publish_date DATETIME,
-    category VARCHAR(50),
-    description TEXT,
-    stock INT NOT NULL,
-    available INT NOT NULL,
-    create_time DATETIME
-);
-
-CREATE TABLE t_borrow_record (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    book_id BIGINT NOT NULL,
-    user_id BIGINT NOT NULL,
-    borrow_time DATETIME NOT NULL,
-    due_time DATETIME NOT NULL,
-    return_time DATETIME,
-    renew_count INT NOT NULL DEFAULT 0,
-    status VARCHAR(20) NOT NULL DEFAULT 'BORROWED',
-    FOREIGN KEY (book_id) REFERENCES t_book(id),
-    FOREIGN KEY (user_id) REFERENCES t_user(id)
-);
-```
-
 ---
 
 ## 7. 部署与运行
@@ -743,6 +396,7 @@ CREATE TABLE t_borrow_record (
 |------|------|------|------|
 | Nacos Server | 2.x | 8848 | 服务注册与配置中心（仅服务端） |
 | MySQL | 8.x | 3306 | 数据库 |
+| Node.js | >= 18.x | - | 前端运行环境 |
 
 ### 7.2 数据库配置
 
@@ -771,22 +425,20 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 2. **启动 MySQL**
    - 确保 MySQL 服务已启动，数据库 `nacon7_db` 已创建
 
-3. **安装 common 模块到本地仓库**
+3. **启动后端服务**
    ```bash
-   mvn install -pl common -am
-   ```
-
-4. **启动 server 模块**
-   ```bash
+   cd nacon7
    mvn spring-boot:run -pl server
    ```
-   或运行 [ServerApplication.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/server/ServerApplication.java)
+   服务地址：`http://localhost:8081`
 
-5. **启动 client 模块**
+4. **启动前端服务**
    ```bash
-   mvn javafx:run -pl client
+   cd nacon7
+   npm install
+   npm run dev
    ```
-   或运行 [FxApplication.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/FxApplication.java)
+   服务地址：`http://localhost:5173`
 
 ### 7.4 初始化账号
 
@@ -797,34 +449,44 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 | admin | admin123 | ADMIN | 13800138000 |
 | user | user123 | USER | 13800138001 |
 
-### 7.5 客户端界面说明
+### 7.5 前端页面说明
 
-客户端基于 **页面隔离** 架构，每个页面/Tab 为独立类，通过 `AppContext` 共享依赖。登录后根据角色动态显示 Tab。
-
-| 场景/页面 | 文件名 | 功能 | 说明 |
-|-----------|--------|------|------|
-| **登录页面** | LoginView | 账号/密码输入、登录、注册跳转 | Enter键提交、异步请求、错误提示 |
-| **注册页面** | RegisterView | 用户名/密码/手机号输入、注册、返回登录 | 表单校验、成功后自动跳转登录页 |
-| **图书浏览Tab** | BookListTab | 分页浏览图书、按书名/作者/分类搜索、借阅 | 异步加载，分页控制 |
-| **我的借阅Tab** | MyBorrowTab | 查看个人借阅记录、归还、续借 | 分页显示，状态提示 |
-| **个人信息Tab** | ProfileTab | 显示用户详细信息、刷新 | 实时API调用 |
-| **图书管理Tab** | BookManageTab | 图书CRUD、搜索、分页管理 | 仅管理员可见，带编辑对话框 |
-| **用户管理Tab** | UserManageTab | 查看用户列表、删除用户 | 分页显示，仅管理员可见 |
-| **借阅管理Tab** | BorrowManageTab | 查看全部/逾期借阅记录（分页） | 仅管理员可见，支持两种模式切换 |
+| 页面 | 路径 | 功能 | 说明 |
+|------|------|------|------|
+| **登录页面** | /login | 账号/密码输入、登录、注册跳转 | Enter键提交、异步请求、错误提示 |
+| **注册页面** | /register | 用户名/密码/手机号输入、注册、返回登录 | 表单校验、密码确认 |
+| **图书浏览** | / | 分页浏览图书、按书名/作者/分类搜索、借阅 | 卡片式布局、借阅弹窗 |
+| **我的借阅** | /my-borrow | 查看个人借阅记录、归还、续借 | 表格展示、状态标签、续借限制 |
+| **个人信息** | /profile | 显示用户详细信息、刷新 | 用户头像、角色标签 |
+| **图书管理** | /book-manage | 图书CRUD、搜索、分页管理 | 仅管理员可见，弹窗编辑 |
+| **用户管理** | /user-manage | 查看用户列表、删除用户 | 仅管理员可见 |
+| **借阅管理** | /borrow-manage | 查看全部/逾期借阅记录（分页） | 仅管理员可见，模式切换 |
 
 ---
 
-## 8. 已知问题与优化建议
+## 8. 常用命令
 
-### 8.1 已修复问题
+```bash
+# 后端编译
+mvn clean compile
 
-| 问题 | 位置 | 修复内容 |
-|------|------|----------|
-| **Tab 内容空白（只显示标题）** | 6 个 Tab 文件 | 所有 Tab 的 `build()` 方法缺少 `tab.setContent(root)`，已全部补充 |
-| **@NotBlank 误用于 Long/Integer** | [BorrowRequest.java](file:///C:/Users/p4/Desktop/nacon7/common/src/main/java/net/togogo/dto/BorrowRequest.java) | `bookId`（Long）和 `borrowDays`（Integer）误用 `@NotBlank`，已改为 `@NotNull` |
-| **借阅接口存在越权风险** | [BookController.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/controller/BookController.java) + [BookServiceClient.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/BookServiceClient.java) | 移除客户端传入 `userId`，改为从 `SecurityContextHolder` 解析当前登录用户 |
+# 启动后端
+mvn spring-boot:run -pl server
 
+# 前端安装依赖
+npm install
 
+# 启动前端开发服务器
+npm run dev
+
+# 前端构建生产版本
+npm run build
+
+# 前端预览生产版本
+npm run preview
+```
+
+---
 
 ## 9. 开发规范
 
@@ -834,23 +496,16 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 - **common** 模块只能包含 entities、DTOs 和 utility classes
 - **server** 模块必须使用 `${project.version}` 依赖 `common` 模块
 
-### 9.2 POM 规范
+### 9.2 前端开发规范
 
-- 根 `pom.xml` 只包含 `dependencyManagement` 用于版本控制，不包含 `dependencies`
-- **common** 模块需要 `jakarta.persistence-api` 依赖用于实体类
-- **server** 模块需要 `spring-boot-starter-web` 和 `spring-boot-starter-validation` 依赖
-- **client** 模块需要 `spring-boot-starter-web` 依赖防止启动后立即退出
-- **client** 模块移除 Nacos Discovery 依赖，使用 Feign 直接 URL 调用
+- 组件文件命名使用 PascalCase（如 `BookListView.vue`）
+- 工具函数放在 `src/utils/` 目录
+- API 服务放在 `src/services/` 目录
+- 路由配置在 `src/router/index.js`
 
-### 9.3 Feign 配置规范
+### 9.3 新增功能开发规范
 
-- 客户端使用实例级拦截器（`UserFeignConfig`）管理 Token
-- Feign 客户端使用 `url` 属性直连服务端，不依赖服务发现
-- Token 通过 `TokenStore` Bean 管理，非静态方法
-
-### 9.4 新增功能开发规范
-
-新增功能遵循以下实现顺序：
+**后端：**
 1. Entity（实体类）→ common 模块
 2. DTO（数据传输对象）→ common 模块
 3. Repository（数据访问层）→ server 模块
@@ -858,73 +513,7 @@ CREATE DATABASE nacon7_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 5. ServiceImpl（业务逻辑实现）→ server 模块
 6. Controller（REST API）→ server 模块
 
----
-
-## 10. 附录
-
-### 10.1 文件清单
-
-| 文件 | 路径 | 说明 |
-|------|------|------|
-| 根 POM | [pom.xml](file:///C:/Users/p4/Desktop/nacon7/pom.xml) | 版本管理 |
-| Server POM | [server/pom.xml](file:///C:/Users/p4/Desktop/nacon7/server/pom.xml) | 服务端依赖 |
-| Client POM | [client/pom.xml](file:///C:/Users/p4/Desktop/nacon7/client/pom.xml) | 客户端依赖 |
-| Common POM | [common/pom.xml](file:///C:/Users/p4/Desktop/nacon7/common/pom.xml) | 公共模块依赖 |
-| Server 配置 | [server/application.yml](file:///C:/Users/p4/Desktop/nacon7/server/src/main/resources/application.yml) | 服务端配置 |
-| Client 配置 | [client/application.yml](file:///C:/Users/p4/Desktop/nacon7/client/src/main/resources/application.yml) | 客户端配置 |
-| Server 启动类 | [ServerApplication.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/server/ServerApplication.java) | 服务端入口 |
-| Client 启动类 | [ClientApplication.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/ClientApplication.java) | Spring Boot入口 |
-| JavaFX 启动类 | [FxApplication.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/FxApplication.java) | JavaFX入口和UI |
-| Token 存储 | [TokenStore.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/TokenStore.java) | Token管理Bean |
-| Feign配置 | [UserFeignConfig.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/UserFeignConfig.java) | 实例级拦截器配置 |
-| Feign接口 | [UserServiceClient.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/UserServiceClient.java) | 用户Feign客户端接口 |
-| 图书Feign接口 | [BookServiceClient.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/BookServiceClient.java) | 图书Feign客户端接口 |
-| App上下文 | [AppContext.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/AppContext.java) | 全局共享上下文 |
-| Scene缓存 | [SceneCache.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/SceneCache.java) | 登录/主页Scene缓存 |
-| 登录页面 | [LoginView.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/LoginView.java) | 登录页面UI |
-| 注册页面 | [RegisterView.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/RegisterView.java) | 注册页面UI |
-| 主页面 | [MainView.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/MainView.java) | 主页面布局（TabPane+顶栏） |
-| 图书浏览Tab | [BookListTab.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/tab/BookListTab.java) | 图书浏览（搜索+借阅+分页） |
-| 我的借阅Tab | [MyBorrowTab.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/tab/MyBorrowTab.java) | 我的借阅（归还+续借+分页） |
-| 个人信息Tab | [ProfileTab.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/tab/ProfileTab.java) | 个人信息 |
-| 图书管理Tab | [BookManageTab.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/tab/BookManageTab.java) | 图书CRUD+分页（管理员） |
-| 用户管理Tab | [UserManageTab.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/tab/UserManageTab.java) | 用户列表+删除（管理员） |
-| 借阅管理Tab | [BorrowManageTab.java](file:///C:/Users/p4/Desktop/nacon7/client/src/main/java/net/togogo/client/view/tab/BorrowManageTab.java) | 全部/逾期借阅（管理员） |
-| 分页DTO | [PageResponse.java](file:///C:/Users/p4/Desktop/nacon7/common/src/main/java/net/togogo/dto/PageResponse.java) | Feign分页反序列化 |
-| UserController | [UserController.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/controller/UserController.java) | 用户管理API |
-| BookController | [BookController.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/controller/BookController.java) | 图书管理API |
-| UserService | [UserService.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/service/UserService.java) | 用户服务接口 |
-| BookService | [BookService.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/service/BookService.java) | 图书服务接口 |
-| UserServiceImpl | [UserServiceImpl.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/service/impl/UserServiceImpl.java) | 用户服务实现 |
-| BookServiceImpl | [BookServiceImpl.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/service/impl/BookServiceImpl.java) | 图书服务实现 |
-| UserRepository | [UserRepository.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/repository/UserRepository.java) | 用户数据访问 |
-| BookRepository | [BookRepository.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/repository/BookRepository.java) | 图书数据访问 |
-| BorrowRecordRepository | [BorrowRecordRepository.java](file:///C:/Users/p4/Desktop/nacon7/server/src/main/java/net/togogo/repository/BorrowRecordRepository.java) | 借阅记录数据访问 |
-
-### 10.2 常用命令
-
-```bash
-# 编译整个项目
-mvn clean compile
-
-# 打包整个项目
-mvn clean package
-
-# 安装 common 模块
-mvn install -pl common -am
-
-# 运行 server
-mvn spring-boot:run -pl server
-
-# 运行 client (JavaFX)
-mvn javafx:run -pl client
-
-# 运行测试
-mvn test -pl server
-
-# 查看服务端日志
-# server 启动后访问: http://localhost:8081/actuator/health
-
-# 查看客户端日志
-# client 启动后访问: http://localhost:8082/actuator/health
-```
+**前端：**
+1. Service（API 调用）→ src/services/
+2. View（页面组件）→ src/views/
+3. Route（路由配置）→ src/router/index.js
