@@ -1,0 +1,106 @@
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <BookOpen class="w-8 h-8 text-white" />
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800">图书管理系统</h1>
+        <p class="text-gray-500 mt-2">欢迎登录</p>
+      </div>
+
+      <form @submit.prevent="handleLogin" class="space-y-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+          <div class="relative">
+            <User class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              v-model="form.account"
+              type="text"
+              placeholder="请输入用户名"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+          <div class="relative">
+            <Lock class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              v-model="form.password"
+              type="password"
+              placeholder="请输入密码"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              required
+            />
+          </div>
+        </div>
+
+        <div v-if="error" class="text-red-500 text-sm text-center">{{ error }}</div>
+
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span v-if="loading" class="flex items-center justify-center">
+            <Loader2 class="w-5 h-5 animate-spin mr-2" />
+            登录中...
+          </span>
+          <span v-else>登 录</span>
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <span class="text-gray-500">还没有账号？</span>
+        <router-link to="/register" class="text-blue-500 hover:text-blue-600 font-medium ml-1">立即注册</router-link>
+      </div>
+
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+        <p class="text-xs text-gray-500 text-center">测试账号</p>
+        <p class="text-xs text-gray-400 text-center mt-1">管理员: admin / admin123</p>
+        <p class="text-xs text-gray-400 text-center">普通用户: user / user123</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { BookOpen, User, Lock, Loader2 } from 'lucide-vue-next'
+import { login } from '../services/userService'
+import { setToken, setUser } from '../utils/auth'
+
+const router = useRouter()
+const loading = ref(false)
+const error = ref('')
+
+const form = reactive({
+  account: '',
+  password: ''
+})
+
+async function handleLogin() {
+  loading.value = true
+  error.value = ''
+  
+  try {
+    const response = await login(form)
+    if (response.code === 200) {
+      const { token, ...user } = response.data
+      setToken(token)
+      setUser(user)
+      router.push('/')
+    } else {
+      error.value = response.message || '登录失败'
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || '登录失败，请检查网络'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
