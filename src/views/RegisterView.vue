@@ -127,7 +127,7 @@ async function handleRegister() {
       error.value = response.message || '注册失败'
     }
   } catch (err) {
-    error.value = err.response?.data?.message || '注册失败，请检查网络'
+    error.value = err.response?.data?.message || '注册失败，请重新注册'
   } finally {
     loading.value = false
   }

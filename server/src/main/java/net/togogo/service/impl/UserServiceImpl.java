@@ -5,6 +5,7 @@ import net.togogo.common.BusinessException;
 import net.togogo.common.ResultCode;
 import net.togogo.dto.LoginRequest;
 import net.togogo.dto.LoginResponse;
+import net.togogo.dto.PageResponse;
 import net.togogo.dto.RegisterRequest;
 import net.togogo.dto.UpdateUserRequest;
 import net.togogo.dto.UserDTO;
@@ -13,6 +14,8 @@ import net.togogo.repository.UserRepository;
 import net.togogo.security.JwtUtil;
 import net.togogo.service.UserService;
 import net.togogo.util.PasswordUtil;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -23,8 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 @Service("userServiceImpl")
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserDTO register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new BusinessException(ResultCode.USERNAME_EXIST);
@@ -76,11 +78,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<UserDTO> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::convertToDTO);
+    @Cacheable(value = "users", key = "'all:' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<UserDTO> getAllUsers(Pageable pageable) {
+        Page<UserDTO> page = userRepository.findAll(pageable).map(this::convertToDTO);
+        return PageResponse.from(page);
     }
 
     @Override
+    @Cacheable(value = "users", key = "'id:' + #id")
     public UserDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -88,6 +93,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "'username:' + #username")
     public UserDTO getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -95,6 +101,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "'phone:' + #phone")
     public UserDTO getUserByPhone(String phone) {
         User user = userRepository.findByPhone(phone)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -103,6 +110,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new BusinessException(ResultCode.NOT_FOUND);
@@ -112,6 +120,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserDTO updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));

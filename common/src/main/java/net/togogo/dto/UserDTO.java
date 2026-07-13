@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import net.togogo.entity.User;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 //隔绝实现类，达到安全防护的效果
-public class UserDTO {
+public class UserDTO implements Serializable {
 
     private Long id;
     private String username;

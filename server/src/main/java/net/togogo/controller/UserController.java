@@ -7,7 +7,6 @@ import net.togogo.repository.UserRepository;
 import net.togogo.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,11 +35,11 @@ public class UserController {
 
     @GetMapping("/getAllUsers")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<Page<UserDTO>> getAllUsers(
+    public Result<PageResponse<UserDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createTime"));
-        Page<UserDTO> users = userService.getAllUsers(pageable);
+        PageResponse<UserDTO> users = userService.getAllUsers(pageable);
         return Result.success(users);
     }
 

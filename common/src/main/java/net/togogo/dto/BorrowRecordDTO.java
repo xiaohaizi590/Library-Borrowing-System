@@ -7,11 +7,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import net.togogo.entity.BorrowRecord;
 
+import java.io.Serializable;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BorrowRecordDTO {
+public class BorrowRecordDTO implements Serializable {
 
     private Long id;
     private Long bookId;

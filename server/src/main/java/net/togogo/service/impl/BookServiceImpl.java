@@ -8,6 +8,7 @@ import net.togogo.dto.BookDTO;
 import net.togogo.dto.BorrowRecordDTO;
 import net.togogo.dto.BorrowRequest;
 import net.togogo.dto.CreateBookRequest;
+import net.togogo.dto.PageResponse;
 import net.togogo.entity.Book;
 import net.togogo.entity.BorrowRecord;
 import net.togogo.entity.User;
@@ -15,6 +16,8 @@ import net.togogo.repository.BookRepository;
 import net.togogo.repository.BorrowRecordRepository;
 import net.togogo.repository.UserRepository;
 import net.togogo.service.BookService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,6 +39,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"books", "books:search"}, allEntries = true)
     public BookDTO createBook(CreateBookRequest request) {
         if (request.getIsbn() != null && bookRepository.existsByIsbn(request.getIsbn())) {
             throw new BusinessException(ResultCode.BOOK_ISBN_EXIST);
@@ -58,6 +62,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @Cacheable(value = "books", key = "#id")
     public BookDTO getBookById(Long id) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -65,27 +70,36 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public Page<BookDTO> getAllBooks(Pageable pageable) {
-        return bookRepository.findAll(pageable).map(this::convertToBookDTO);
+    @Cacheable(value = "books:all", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BookDTO> getAllBooks(Pageable pageable) {
+        Page<BookDTO> page = bookRepository.findAll(pageable).map(this::convertToBookDTO);
+        return PageResponse.from(page);
     }
 
     @Override
-    public Page<BookDTO> searchByTitle(String title, Pageable pageable) {
-        return bookRepository.findByTitleContaining(title, pageable).map(this::convertToBookDTO);
+    @Cacheable(value = "books:search", key = "'title:' + #title + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BookDTO> searchByTitle(String title, Pageable pageable) {
+        Page<BookDTO> page = bookRepository.findByTitleContaining(title, pageable).map(this::convertToBookDTO);
+        return PageResponse.from(page);
     }
 
     @Override
-    public Page<BookDTO> searchByAuthor(String author, Pageable pageable) {
-        return bookRepository.findByAuthorContaining(author, pageable).map(this::convertToBookDTO);
+    @Cacheable(value = "books:search", key = "'author:' + #author + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BookDTO> searchByAuthor(String author, Pageable pageable) {
+        Page<BookDTO> page = bookRepository.findByAuthorContaining(author, pageable).map(this::convertToBookDTO);
+        return PageResponse.from(page);
     }
 
     @Override
-    public Page<BookDTO> searchByCategory(String category, Pageable pageable) {
-        return bookRepository.findByCategory(category, pageable).map(this::convertToBookDTO);
+    @Cacheable(value = "books:search", key = "'category:' + #category + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BookDTO> searchByCategory(String category, Pageable pageable) {
+        Page<BookDTO> page = bookRepository.findByCategory(category, pageable).map(this::convertToBookDTO);
+        return PageResponse.from(page);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = {"books", "books:all", "books:search"}, allEntries = true)
     public BookDTO updateBook(Long id, CreateBookRequest request) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -105,6 +119,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"books", "books:all", "books:search"}, allEntries = true)
     public void deleteBook(Long id) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -119,6 +134,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"borrowRecords", "books", "books:all"}, allEntries = true)
     public BorrowRecordDTO borrowBook(BorrowRequest request) {
         // 从 SecurityContext 中获取当前登录用户
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -160,6 +176,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"borrowRecords", "books", "books:all"}, allEntries = true)
     public BorrowRecordDTO returnBook(Long recordId) {
         BorrowRecord record = borrowRecordRepository.findById(recordId)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -183,6 +200,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"borrowRecords", "books", "books:all"}, allEntries = true)
     public BorrowRecordDTO renewBook(Long recordId) {
         BorrowRecord record = borrowRecordRepository.findById(recordId)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -208,17 +226,20 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public Page<BorrowRecordDTO> getBorrowRecordsByUser(Long userId, Pageable pageable) {
-        return borrowRecordRepository.findByUserId(userId, pageable)
+    @Cacheable(value = "borrowRecords", key = "'user:' + #userId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BorrowRecordDTO> getBorrowRecordsByUser(Long userId, Pageable pageable) {
+        Page<BorrowRecordDTO> page = borrowRecordRepository.findByUserId(userId, pageable)
                 .map(record -> {
                     Book book = bookRepository.findById(record.getBookId()).orElse(null);
                     String title = book != null ? book.getTitle() : "未知";
                     String author = book != null ? book.getAuthor() : "未知";
                     return convertToBorrowRecordDTO(record, title, author);
                 });
+        return PageResponse.from(page);
     }
 
     @Override
+    @Cacheable(value = "borrowRecords", key = "'book:' + #bookId")
     public List<BorrowRecordDTO> getBorrowRecordsByBook(Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
@@ -233,8 +254,9 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public Page<BorrowRecordDTO> getOverdueRecords(Pageable pageable) {
-        return borrowRecordRepository.findByStatusAndDueTimeBefore(
+    @Cacheable(value = "borrowRecords", key = "'overdue:' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BorrowRecordDTO> getOverdueRecords(Pageable pageable) {
+        Page<BorrowRecordDTO> page = borrowRecordRepository.findByStatusAndDueTimeBefore(
                 BorrowRecord.Borrowstatus.BORROWED, LocalDateTime.now(), pageable)
                 .map(record -> {
                     Book book = bookRepository.findById(record.getBookId()).orElse(null);
@@ -244,11 +266,13 @@ public class BookServiceImpl implements BookService {
                     String username = user != null ? user.getUsername() : "未知";
                     return convertToBorrowRecordDTO(record, title, author, username);
                 });
+        return PageResponse.from(page);
     }
 
     @Override
-    public Page<BorrowRecordDTO> getAllBorrowRecords(Pageable pageable) {
-        return borrowRecordRepository.findAll(pageable)
+    @Cacheable(value = "borrowRecords", key = "'all:' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<BorrowRecordDTO> getAllBorrowRecords(Pageable pageable) {
+        Page<BorrowRecordDTO> page = borrowRecordRepository.findAll(pageable)
                 .map(record -> {
                     Book book = bookRepository.findById(record.getBookId()).orElse(null);
                     String title = book != null ? book.getTitle() : "未知";
@@ -257,6 +281,7 @@ public class BookServiceImpl implements BookService {
                     String username = user != null ? user.getUsername() : "未知";
                     return convertToBorrowRecordDTO(record, title, author, username);
                 });
+        return PageResponse.from(page);
     }
 
     private BookDTO convertToBookDTO(Book book) {
