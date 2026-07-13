@@ -1,4 +1,4 @@
-# nacon7 图书管理系统
+# 图书管理系统
 
 ## 1. 项目概述
 
@@ -16,7 +16,7 @@
 | Spring Cloud Alibaba | 2023.0.1.0 | Nacos 集成 |
 | Spring Security | 6.x | 安全框架 |
 | Spring Data JPA | 3.2.x | 数据访问 |
-| JWT (JJWT) | 0.12.3 | 令牌认证 |
+| JWT (JJWT) | 0.12.3 | 令牌认证 |这里准备改成软编码，不用硬编码，更加符合1应用场景
 | MySQL | 8.x | 数据库 |
 | Vue | 3.4.21 | 前端框架 |
 | Vue Router | 4.2.5 | 前端路由 |
