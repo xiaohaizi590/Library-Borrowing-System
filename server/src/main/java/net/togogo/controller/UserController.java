@@ -2,11 +2,13 @@ package net.togogo.controller;
 
 import net.togogo.common.Result;
 import net.togogo.dto.*;
-import net.togogo.entity.User;
-import net.togogo.repository.UserRepository;
+
 import net.togogo.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -14,12 +16,25 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Map;
+import java.util.UUID;
+
+import com.wf.captcha.SpecCaptcha;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.awt.Font;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
 
     @PostMapping("/register")
     public Result<UserDTO> register(@Valid @RequestBody RegisterRequest request) {
@@ -28,9 +43,38 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = userService.login(request);
+    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        // 获取客户端IP地址
+        String clientIp = getClientIpAddress(httpRequest);
+        LoginResponse response = userService.login(request, clientIp);
         return Result.success("登录成功", response);
+    }
+
+    /**
+     * 获取客户端真实IP地址
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 多个代理情况，取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
     @GetMapping("/getAllUsers")
@@ -56,6 +100,7 @@ public class UserController {
         UserDTO userDTO = userService.getUserByUsername(username);
         return Result.success(userDTO);
     }
+  
 
     @GetMapping("/getUserByPhone/{phone}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -93,5 +138,50 @@ public class UserController {
         String username = auth.getName();
         UserDTO userDTO = userService.getUserByUsername(username);
         return Result.success(userDTO);
+    }
+
+    @GetMapping("/captcha")
+    public Result<Map<String, String>> getCaptcha() {
+        SpecCaptcha captcha = new SpecCaptcha(130, 48, 4);
+        captcha.setFont(new Font("Arial", Font.PLAIN, 32));
+
+        String text = captcha.text().toLowerCase();
+        String captchaKey = UUID.randomUUID().toString();
+
+        // 存入 Redis，key 为 "captcha:" + captchaKey
+        redisTemplate.opsForValue().set(
+            "captcha:" + captchaKey,
+            text,
+            5,
+            TimeUnit.MINUTES
+        );
+
+        return Result.success(Map.of(
+            "captchaKey", captchaKey,
+            "image", captcha.toBase64()
+        ));
+    }
+
+    @PostMapping("/captcha/verify")
+    public Result<Boolean> verifyCaptcha(@RequestBody Map<String, String> request) {
+        String captchaKey = request.get("captchaKey");
+        String inputCaptcha = request.get("captcha");
+
+        if (captchaKey == null || inputCaptcha == null) {
+            return Result.error(400, "验证码参数不能为空");
+        }
+
+        String storedCaptcha = redisTemplate.opsForValue().get("captcha:" + captchaKey);
+        if (storedCaptcha == null) {
+            return Result.error(400, "验证码已过期，请重新获取");
+        }
+
+        boolean isValid = storedCaptcha.equalsIgnoreCase(inputCaptcha.trim());
+        if (isValid) {
+            redisTemplate.delete("captcha:" + captchaKey);
+            return Result.success(true);
+        }
+
+        return Result.error(400, "验证码错误");
     }
 }

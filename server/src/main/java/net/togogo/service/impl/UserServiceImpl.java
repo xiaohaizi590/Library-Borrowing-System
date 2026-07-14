@@ -14,6 +14,7 @@ import net.togogo.repository.UserRepository;
 import net.togogo.security.JwtUtil;
 import net.togogo.service.UserService;
 import net.togogo.util.PasswordUtil;
+import net.togogo.service.LoginAttemptService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -23,16 +24,22 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service("userServiceImpl")
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
+    // 注入 UserRepository
     private final UserRepository userRepository;
+    // 注入 JwtUtil
     private final JwtUtil jwtUtil;
+    // 注入 LoginAttemptService
+    private final LoginAttemptService loginAttemptService;
+    // 注入 RedisTemplate
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
 
     @Override
     @Transactional
@@ -58,13 +65,37 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getAccount())
+    public LoginResponse login(LoginRequest request, String ip) {
+        String username = request.getAccount();
+        String captchaKey = request.getCaptchaKey();
+        String captchaText = request.getCaptcha();
+    
+
+        // 检查验证码是否正确
+        String cachedCaptcha = redisTemplate.opsForValue().get("captcha:" + captchaKey);
+        if (!cachedCaptcha.equals(captchaText)) {
+            throw new BusinessException(ResultCode.CAPTCHA_ERROR);
+        }
+        // 验证码正确，删除 Redis 中的验证码
+        redisTemplate.delete("captcha:" + captchaKey);
+
+        // 检查账号是否被锁定
+        if (loginAttemptService.isExceeded(username, ip)) {
+            throw new BusinessException(ResultCode.ACCOUNT_LOCKED);
+        }
+
+        // 查找用户
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(ResultCode.USER_NOT_FOUND));
 
+        // 密码校验
         if (!PasswordUtil.matches(request.getPassword(), user.getPassword())) {
+            loginAttemptService.incrementAttempts(username, ip);
             throw new BusinessException(ResultCode.PASSWORD_ERROR);
         }
+
+        // 登录成功，清除失败记录
+        loginAttemptService.resetAttempts(username, ip);
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
         return LoginResponse.builder()

@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface UserService {
     UserDTO register(RegisterRequest request);
-    LoginResponse login(LoginRequest request);
+    LoginResponse login(LoginRequest request, String ip);
     PageResponse<UserDTO> getAllUsers(Pageable pageable);
     UserDTO getUserById(Long id);
     UserDTO getUserByUsername(String username);

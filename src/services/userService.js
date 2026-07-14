@@ -31,3 +31,11 @@ export function updateUser(id, data) {
 export function deleteUser(id) {
   return api.delete(`/users/deleteUser/${id}`)
 }
+
+export function getCaptcha() {
+  return api.get('/users/captcha')
+}
+
+export function verifyCaptcha(data) {
+  return api.post('/users/captcha/verify', data)
+}

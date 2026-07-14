@@ -20,6 +20,8 @@ public enum ResultCode {
     TOKEN_EXPIRED(1005, "Token 已过期"),
     PHONE_EXIST(1006, "手机号已存在"),
     EMAIL_EXIST(1007, "邮箱已存在"),
+    ACCOUNT_LOCKED(1008, "账号已被锁定，请5分钟后重试"),
+    CAPTCHA_ERROR(1009, "验证码错误"),
 
     // 图书相关状态码
     BOOK_ISBN_EXIST(2001, "ISBN已存在"),

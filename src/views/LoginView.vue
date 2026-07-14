@@ -38,6 +38,29 @@
           </div>
         </div>
 
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">验证码</label>
+          <div class="flex items-center gap-3">
+            <div class="relative flex-1">
+              <input
+                v-model="form.captcha"
+                type="text"
+                placeholder="请输入验证码"
+                class="w-full pl-4 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                required
+              />
+            </div>
+            <div class="flex-shrink-0">
+              <img
+                :src="captchaImage"
+                alt="验证码"
+                @click="loadCaptcha"
+                class="w-32 h-12 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </div>
+          </div>
+        </div>
+
         <div v-if="error" class="text-red-500 text-sm text-center">{{ error }}</div>
 
         <button
@@ -68,27 +91,51 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { BookOpen, User, Lock, Loader2 } from 'lucide-vue-next'
-import { login } from '../services/userService'
+import { login, getCaptcha } from '../services/userService'
 import { setToken, setUser } from '../utils/auth'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
+const captchaImage = ref('')
+const captchaKey = ref('')
 
 const form = reactive({
   account: '',
-  password: ''
+  password: '',
+  captcha: ''
 })
+
+async function loadCaptcha() {
+  try {
+    const response = await getCaptcha()
+    if (response.code === 200) {
+      captchaKey.value = response.data.captchaKey
+      captchaImage.value = response.data.image
+    }
+  } catch (err) {
+    console.error('获取验证码失败:', err)
+  }
+}
 
 async function handleLogin() {
   loading.value = true
   error.value = ''
   
+  if (!form.captcha.trim()) {
+    error.value = '请输入验证码'
+    loading.value = false
+    return
+  }
+  
   try {
-    const response = await login(form)
+    const response = await login({
+      ...form,
+      captchaKey: captchaKey.value
+    })
     if (response.code === 200) {
       const { token, ...user } = response.data
       setToken(token)
@@ -96,11 +143,17 @@ async function handleLogin() {
       router.push('/')
     } else {
       error.value = response.message || '登录失败'
+      loadCaptcha()
     }
   } catch (err) {
     error.value = err.response?.data?.message || '登录失败，请检查网络'
+    loadCaptcha()
   } finally {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadCaptcha()
+})
 </script>
