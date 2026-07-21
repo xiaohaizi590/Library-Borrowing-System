@@ -25,7 +25,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import com.wf.captcha.SpecCaptcha;
+import java.awt.Font;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service("userServiceImpl")
 @RequiredArgsConstructor
@@ -37,8 +43,20 @@ public class UserServiceImpl implements UserService {
     // 注入 LoginAttemptService
     private final LoginAttemptService loginAttemptService;
     // 注入 RedisTemplate
-    @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    // Lua 脚本：原子校验并删除验证码，返回 -1=过期 0=错误 1=成功
+    private static final DefaultRedisScript<Long> VERIFY_CAPTCHA_SCRIPT = new DefaultRedisScript<>(
+            "local stored = redis.call('GET', KEYS[1])\n" +
+            "if not stored then\n" +
+            "    return -1\n" +
+            "end\n" +
+            "if stored == ARGV[1] then\n" +
+            "    redis.call('DEL', KEYS[1])\n" +
+            "    return 1\n" +
+            "end\n" +
+            "return 0",
+            Long.class);
 
 
     @Override
@@ -69,15 +87,8 @@ public class UserServiceImpl implements UserService {
         String username = request.getAccount();
         String captchaKey = request.getCaptchaKey();
         String captchaText = request.getCaptcha();
-    
-
-        // 检查验证码是否正确
-        String cachedCaptcha = redisTemplate.opsForValue().get("captcha:" + captchaKey);
-        if (!cachedCaptcha.equals(captchaText)) {
-            throw new BusinessException(ResultCode.CAPTCHA_ERROR);
-        }
-        // 验证码正确，删除 Redis 中的验证码
-        redisTemplate.delete("captcha:" + captchaKey);
+           // 验证验证码
+        verifyCaptcha(captchaKey, captchaText);
 
         // 检查账号是否被锁定
         if (loginAttemptService.isExceeded(username, ip)) {
@@ -149,6 +160,7 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+
     @Override
     @Transactional
     @CacheEvict(value = "users", allEntries = true)
@@ -172,6 +184,40 @@ public class UserServiceImpl implements UserService {
         User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
     }
+    @Override
+    //生成验证码
+    public Map<String, String> generateCaptcha(){
+        //生成校验码
+        SpecCaptcha captcha = new SpecCaptcha(130, 48, 4);//验证码宽度、高度、字符数
+        captcha.setFont("Arial", Font.PLAIN, 32);//设置字体,可以回退为默认字体
+        captcha.setNoise(true);//设置是否添加干扰线
+        captcha.setDotNoise(true);//设置是否添加干扰点
+        String captchaKey = UUID.randomUUID().toString();//生成验证码key
+        String text = captcha.text().toLowerCase();//获取验证码文本并转换为小写
+        //将验证码文本缓存到redis
+        redisTemplate.opsForValue().set("captcha:" + captchaKey, text, 60, TimeUnit.SECONDS);//缓存60秒
+        return Map.of("captchaKey", captchaKey, "image", captcha.toBase64());//返回验证码key和base64编码的验证码图片
+
+    }
+    //校验验证码（Lua 脚本原子操作，防止并发重复使用）
+    @Override
+    public void verifyCaptcha(String captchaKey, String captchaText) {
+        String normalized = captchaText.replaceAll("\\s+", "").toLowerCase();
+        Long result = redisTemplate.execute(
+                VERIFY_CAPTCHA_SCRIPT,
+                Collections.singletonList("captcha:" + captchaKey),
+                normalized);
+        if (result == null) {
+            throw new BusinessException(ResultCode.INTERNAL_ERROR);
+        }
+        if (result == -1) {
+            throw new BusinessException(ResultCode.CAPTCHA_EXPIRED);
+        }
+        if (result == 0) {
+            throw new BusinessException(ResultCode.CAPTCHA_ERROR);
+        }
+        // result == 1，校验成功且已原子删除
+    }
 
     public boolean isOwnUser(Long userId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -191,16 +237,6 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserDTO convertToDTO(User user) {
-        return UserDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhone())
-                .createTime(user.getCreateTime())
-                .role(user.getRole())
-                .build();
-    }
-    private UserDTO convertToUserDTO(User user) {
         return UserDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())

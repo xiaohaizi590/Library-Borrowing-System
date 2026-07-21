@@ -6,9 +6,6 @@ import net.togogo.dto.*;
 import net.togogo.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.util.concurrent.TimeUnit;
-
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -16,16 +13,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
-import java.util.UUID;
-
-import com.wf.captcha.SpecCaptcha;
-
 import jakarta.servlet.http.HttpServletRequest;
-
-import java.awt.Font;
 
 @RestController
 @RequestMapping("/api/users")
@@ -33,8 +22,6 @@ import java.awt.Font;
 public class UserController {
     private final UserService userService;
 
-    @Autowired
-    private RedisTemplate<String, String> redisTemplate;
 
     @PostMapping("/register")
     public Result<UserDTO> register(@Valid @RequestBody RegisterRequest request) {
@@ -142,26 +129,10 @@ public class UserController {
 
     @GetMapping("/captcha")
     public Result<Map<String, String>> getCaptcha() {
-        SpecCaptcha captcha = new SpecCaptcha(130, 48, 4);
-        captcha.setFont(new Font("Arial", Font.PLAIN, 32));
-
-        String text = captcha.text().toLowerCase();
-        String captchaKey = UUID.randomUUID().toString();
-
-        // 存入 Redis，key 为 "captcha:" + captchaKey
-        redisTemplate.opsForValue().set(
-            "captcha:" + captchaKey,
-            text,
-            5,
-            TimeUnit.MINUTES
-        );
-
-        return Result.success(Map.of(
-            "captchaKey", captchaKey,
-            "image", captcha.toBase64()
-        ));
-    }
-
+        Map<String, String> captcha = userService.generateCaptcha();
+        return Result.success(captcha);
+    }//获取验证码
+    //校验验证码
     @PostMapping("/captcha/verify")
     public Result<Boolean> verifyCaptcha(@RequestBody Map<String, String> request) {
         String captchaKey = request.get("captchaKey");
@@ -170,18 +141,8 @@ public class UserController {
         if (captchaKey == null || inputCaptcha == null) {
             return Result.error(400, "验证码参数不能为空");
         }
-
-        String storedCaptcha = redisTemplate.opsForValue().get("captcha:" + captchaKey);
-        if (storedCaptcha == null) {
-            return Result.error(400, "验证码已过期，请重新获取");
-        }
-
-        boolean isValid = storedCaptcha.equalsIgnoreCase(inputCaptcha.trim());
-        if (isValid) {
-            redisTemplate.delete("captcha:" + captchaKey);
-            return Result.success(true);
-        }
-
-        return Result.error(400, "验证码错误");
+       userService.verifyCaptcha(captchaKey, inputCaptcha);
+        return Result.success("验证成功", true);
     }
+
 }

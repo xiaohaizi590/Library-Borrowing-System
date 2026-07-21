@@ -22,6 +22,7 @@ public enum ResultCode {
     EMAIL_EXIST(1007, "邮箱已存在"),
     ACCOUNT_LOCKED(1008, "账号已被锁定，请5分钟后重试"),
     CAPTCHA_ERROR(1009, "验证码错误"),
+    CAPTCHA_EXPIRED(1010, "验证码已过期，请重新获取"),
 
     // 图书相关状态码
     BOOK_ISBN_EXIST(2001, "ISBN已存在"),
