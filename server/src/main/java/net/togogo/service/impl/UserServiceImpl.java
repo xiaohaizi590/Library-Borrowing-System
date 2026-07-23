@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import net.togogo.mapper.UserMapper;
 
 @Service("userServiceImpl")
 @RequiredArgsConstructor
@@ -78,7 +79,7 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        return convertToDTO(savedUser);
+        return UserMapper.toDTO(savedUser);
     }
 
     @Override
@@ -122,7 +123,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Cacheable(value = "users", key = "'all:' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public PageResponse<UserDTO> getAllUsers(Pageable pageable) {
-        Page<UserDTO> page = userRepository.findAll(pageable).map(this::convertToDTO);
+        Page<UserDTO> page = userRepository.findAll(pageable).map(UserMapper::toDTO);
         return PageResponse.from(page);
     }
 
@@ -131,7 +132,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
-        return convertToDTO(user);
+        return UserMapper.toDTO(user);
     }
 
     @Override
@@ -139,7 +140,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
-        return convertToDTO(user);
+        return UserMapper.toDTO(user);
     }
 
     @Override
@@ -147,7 +148,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserByPhone(String phone) {
         User user = userRepository.findByPhone(phone)
                 .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND));
-        return convertToDTO(user);
+        return UserMapper.toDTO(user);
     }
 
     @Override
@@ -182,16 +183,14 @@ public class UserServiceImpl implements UserService {
         }
 
         User updatedUser = userRepository.save(user);
-        return convertToDTO(updatedUser);
+        return UserMapper.toDTO(updatedUser);
     }
     @Override
     //生成验证码
     public Map<String, String> generateCaptcha(){
         //生成校验码
         SpecCaptcha captcha = new SpecCaptcha(130, 48, 4);//验证码宽度、高度、字符数
-        captcha.setFont("Arial", Font.PLAIN, 32);//设置字体,可以回退为默认字体
-        captcha.setNoise(true);//设置是否添加干扰线
-        captcha.setDotNoise(true);//设置是否添加干扰点
+        captcha.setFont(new Font("Arial", Font.PLAIN, 32));//设置字体,可以回退为默认字体
         String captchaKey = UUID.randomUUID().toString();//生成验证码key
         String text = captcha.text().toLowerCase();//获取验证码文本并转换为小写
         //将验证码文本缓存到redis
@@ -236,14 +235,4 @@ public class UserServiceImpl implements UserService {
                 .orElse(false);
     }
 
-    private UserDTO convertToDTO(User user) {
-        return UserDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhone())
-                .createTime(user.getCreateTime())
-                .role(user.getRole())
-                .build();
-    }
 }

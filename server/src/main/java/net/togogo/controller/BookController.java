@@ -2,8 +2,7 @@ package net.togogo.controller;
 
 import net.togogo.common.Result;
 import net.togogo.dto.BookDTO;
-import net.togogo.dto.BorrowRecordDTO;
-import net.togogo.dto.BorrowRequest;
+
 import net.togogo.dto.CreateBookRequest;
 import net.togogo.dto.PageResponse;
 import net.togogo.service.BookService;
@@ -15,7 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/books")
@@ -90,62 +89,4 @@ public class BookController {
         return Result.success();
     }
 
-    @PostMapping("/borrow")
-    @PreAuthorize("isAuthenticated()")
-    public Result<BorrowRecordDTO> borrowBook(@Valid @RequestBody BorrowRequest request) {
-        BorrowRecordDTO record = bookService.borrowBook(request);
-        return Result.success("借阅成功", record);
-    }
-
-    @PostMapping("/return/{recordId}")
-    @PreAuthorize("isAuthenticated()")
-    public Result<BorrowRecordDTO> returnBook(@PathVariable Long recordId) {
-        BorrowRecordDTO record = bookService.returnBook(recordId);
-        return Result.success("归还成功", record);
-    }
-
-    @PostMapping("/renew/{recordId}")
-    @PreAuthorize("isAuthenticated()")
-    public Result<BorrowRecordDTO> renewBook(@PathVariable Long recordId) {
-        BorrowRecordDTO record = bookService.renewBook(recordId);
-        return Result.success("续借成功", record);
-    }
-
-    @GetMapping("/borrowRecords/user/{userId}")
-    @PreAuthorize("isAuthenticated()")
-    public Result<PageResponse<BorrowRecordDTO>> getBorrowRecordsByUser(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "borrowTime"));
-        PageResponse<BorrowRecordDTO> records = bookService.getBorrowRecordsByUser(userId, pageable);
-        return Result.success(records);
-    }
-
-    @GetMapping("/borrowRecords/book/{bookId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Result<List<BorrowRecordDTO>> getBorrowRecordsByBook(@PathVariable Long bookId) {
-        List<BorrowRecordDTO> records = bookService.getBorrowRecordsByBook(bookId);
-        return Result.success(records);
-    }
-
-    @GetMapping("/borrowRecords/all")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Result<PageResponse<BorrowRecordDTO>> getAllBorrowRecords(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "borrowTime"));
-        PageResponse<BorrowRecordDTO> records = bookService.getAllBorrowRecords(pageable);
-        return Result.success(records);
-    }
-
-    @GetMapping("/overdue")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Result<PageResponse<BorrowRecordDTO>> getOverdueRecords(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "borrowTime"));
-        PageResponse<BorrowRecordDTO> records = bookService.getOverdueRecords(pageable);
-        return Result.success(records);
-    }
 }

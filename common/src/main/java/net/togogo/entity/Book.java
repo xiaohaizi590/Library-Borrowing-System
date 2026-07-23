@@ -67,10 +67,6 @@ public class Book {
     }
     @PreUpdate
     protected void onUpdate() {
-        if (available != null && stock!=null &&available > stock) {
-            throw new IllegalStateException("可借数量不能大于库存数量");
-        }
-
-
+        updateTime = LocalDateTime.now();
     }
 }

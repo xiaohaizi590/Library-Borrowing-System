@@ -39,6 +39,10 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
+  
+  threads:
+    virtual:
+      enabled: true
 
 server:
   port: 8081
